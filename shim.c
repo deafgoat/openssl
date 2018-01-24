@@ -17,14 +17,7 @@
 
 #include <string.h>
 
-#include <openssl/conf.h>
-
-#include <openssl/bio.h>
-#include <openssl/crypto.h>
-#include <openssl/engine.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/ssl.h>
+#include "shim.h"
 
 #include "_cgo_export.h"
 
@@ -726,3 +719,19 @@ int X_sk_X509_num(STACK_OF(X509) *sk) {
 X509 *X_sk_X509_value(STACK_OF(X509)* sk, int i) {
    return sk_X509_value(sk, i);
 }
+
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
+int X_FIPS_mode(void) {
+    return 0;
+}
+int X_FIPS_mode_set(int r) {
+    return 0;
+}
+#else
+int X_FIPS_mode(void) {
+    return FIPS_mode();
+}
+int X_FIPS_mode_set(int r) {
+    return FIPS_mode_set(r);
+}
+#endif

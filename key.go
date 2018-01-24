@@ -52,21 +52,6 @@ const (
 	KeyTypeHKDF    = NID_hkdf
 )
 
-type PublicKey interface {
-	// Verifies the data signature using PKCS1.15
-	VerifyPKCS1v15(method Method, data, sig []byte) error
-
-	// MarshalPKIXPublicKeyPEM converts the public key to PEM-encoded PKIX
-	// format
-	MarshalPKIXPublicKeyPEM() (pem_block []byte, err error)
-
-	// MarshalPKIXPublicKeyDER converts the public key to DER-encoded PKIX
-	// format
-	MarshalPKIXPublicKeyDER() (der_block []byte, err error)
-
-	evpPKey() *C.EVP_PKEY
-}
-
 type PrivateKey interface {
 	PublicKey
 
@@ -128,25 +113,6 @@ func (key *pKey) VerifyPKCS1v15(method Method, data, sig []byte) error {
 		return errors.New("verifypkcs1v15: failed to finalize verify")
 	}
 	return nil
-}
-
-func (key *pKey) MarshalPKCS1PrivateKeyPEM() (pem_block []byte,
-	err error) {
-	bio := C.BIO_new(C.BIO_s_mem())
-	if bio == nil {
-		return nil, errors.New("failed to allocate memory BIO")
-	}
-	defer C.BIO_free(bio)
-
-	// PEM_write_bio_PrivateKey_traditional will use the key-specific PKCS1
-	// format if one is available for that key type, otherwise it will encode
-	// to a PKCS8 key.
-	if int(C.X_PEM_write_bio_PrivateKey_traditional(bio, key.key, nil, nil,
-		C.int(0), nil, nil)) != 1 {
-		return nil, errors.New("failed dumping private key")
-	}
-
-	return ioutil.ReadAll(asAnyBio(bio))
 }
 
 func (key *pKey) MarshalPKCS1PrivateKeyDER() (der_block []byte,

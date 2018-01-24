@@ -13,15 +13,32 @@
 // limitations under the License.
 
 // +build cgo
-// +build !darwin
 
 package openssl
 
 /*
-#include <openssl/ssl.h>
+#include "shim.h"
+
+static int X_FIPS_defined() {
+#ifdef OPENSSL_FIPS
+	return 1;
+#else
+	return 0;
+#endif
+}
+
 */
 import "C"
 import "runtime"
+
+// FIPSModeDefined indicates if the openssl library has the FIPS
+// module complied in, specifically if the "OPENSSL_FIPS" macro is defined.
+func FIPSModeDefined() bool {
+	if C.X_FIPS_defined() == 1 {
+		return true
+	}
+	return false
+}
 
 // FIPSModeSet enables a FIPS 140-2 validated mode of operation.
 // https://wiki.openssl.org/index.php/FIPS_mode_set()
@@ -31,9 +48,9 @@ func FIPSModeSet(mode bool) error {
 
 	var r C.int
 	if mode {
-		r = C.FIPS_mode_set(1)
+		r = C.X_FIPS_mode_set(1)
 	} else {
-		r = C.FIPS_mode_set(0)
+		r = C.X_FIPS_mode_set(0)
 	}
 	if r != 1 {
 		return errorFromErrorQueue()
@@ -42,8 +59,8 @@ func FIPSModeSet(mode bool) error {
 }
 
 func FIPSMode() bool {
-	if C.FIPS_mode() == 0 {
-		return false
+	if FIPSModeDefined() && C.X_FIPS_mode() != 0 {
+		return true
 	}
-	return true
+	return false
 }

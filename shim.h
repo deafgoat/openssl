@@ -18,16 +18,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <openssl/opensslconf.h>
+
 #include <openssl/bio.h>
+#include <openssl/conf.h>
 #include <openssl/crypto.h>
 #include <openssl/dh.h>
+#include <openssl/ec.h>
+#include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
-#include <openssl/ec.h>
 
 #ifndef SSL_MODE_RELEASE_BUFFERS
 #define SSL_MODE_RELEASE_BUFFERS 0
@@ -162,3 +166,7 @@ extern X509 *X_sk_X509_value(STACK_OF(X509)* sk, int i);
 
 /* PEM methods */
 extern int X_PEM_write_bio_PrivateKey_traditional(BIO *bio, EVP_PKEY *key, const EVP_CIPHER *enc, unsigned char *kstr, int klen, pem_password_cb *cb, void *u);
+
+/* FIPS methods */
+extern int X_FIPS_mode(void);
+extern int X_FIPS_mode_set(int r);
