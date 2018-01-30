@@ -6,21 +6,51 @@ stepback: true
 
 functions:
 
-  "fetch source" :
-    - command: git.get_project
+  "set shell vars":
+    - command: shell.exec
       params:
-        directory: gopath/src/github.com/10gen
+        script: |
+            set -o errexit
+            set -o xtrace
+            export RAWGOPATH="$(pwd)/gopath"
+            export GOPATH="$RAWGOPATH"
+            if [ "Windows_NT" = "$OS" ]; then
+                set -o igncr
+                export GOPATH=$(echo $GOPATH | sed -e 's|/cygdrive/c|c:|')
+            fi
+            cat <<EOT > expansion.yml
+            rawgopath: $RAWGOPATH
+            repopath: $RAWGOPATH/src/github.com/10gen/openssl
+            prepare_shell: |
+                export GOPATH="$GOPATH"
+                set -o errexit
+                set -o xtrace
+            EOT
+            cat expansion.yml
+            exit 0
+    - command: expansions.update
+      params:
+        file: expansion.yml
 
   "setup gopath" :
     - command: shell.exec
       params:
         silent: false
         script: |
-            set -x
-            set -v
-            export GOPATH=gopath
+            ${prepare_shell}
             ${gorootvars} go get github.com/spacemonkeygo/spacelog
-            mkdir -p gopath/src/github.com/10gen
+            exit 0
+
+  "fetch source" :
+    - command: git.get_project
+      params:
+        directory: src
+    - command: shell.exec
+      params:
+        script: |
+            ${prepare_shell}
+            mkdir -p $(dirname "${repopath}")
+            mv src "${repopath}"
             exit 0
 
   "go test" :
@@ -28,26 +58,25 @@ functions:
       type: test
       params:
         script: |
-            set -x
-            set -v
-            set -e
-            export GOPATH=gopath
+            ${prepare_shell}
+            cd ${repopath}
             ${gorootvars} go test ${args} -tags '${build_tags}' -v
+            exit 0
 
 post:
   - command: shell.exec
     params:
       silent: true
       script: |
-        set -x
-        set -v
-        rm -rf gopath
+        ${prepare_shell}
+        rm -rf "${rawgopath}"
         exit 0
 
 tasks:
 
 - name: "test"
   commands:
+    - func: "set shell vars"
     - func: "setup gopath"
     - func: "fetch source"
     - func: "go test"
@@ -135,6 +164,7 @@ buildvariants:
   run_on:
   - suse11-test
   expansions:
+    gorootvars: ""
     build_tags: "openssl_pre_1.0"
   tasks:
   - name: test
@@ -144,6 +174,7 @@ buildvariants:
   run_on:
   - suse12-test
   expansions:
+    gorootvars: ""
     build_tags: ""
   tasks:
   - name: test
@@ -157,6 +188,7 @@ buildvariants:
   run_on:
   - ubuntu1204-test
   expansions:
+    gorootvars: ""
     build_tags: ""
   tasks:
   - name: test
@@ -166,6 +198,7 @@ buildvariants:
   run_on:
   - ubuntu1404-test
   expansions:
+    gorootvars: ""
     build_tags: ""
   tasks:
   - name: test
@@ -175,6 +208,7 @@ buildvariants:
   run_on:
   - ubuntu1604-test
   expansions:
+    gorootvars: ""
     build_tags: ""
   tasks:
   - name: test
@@ -188,6 +222,7 @@ buildvariants:
   run_on:
   - windows-64-vs2013-test
   expansions:
+    gorootvars: PATH="/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin:$PATH"
     build_tags: ""
   tasks:
   - name: test
