@@ -99,7 +99,8 @@ func init() {
 }
 
 // errorFromErrorQueue needs to run in the same OS thread as the operation
-// that caused the possible error
+// that caused the possible error.  In some circumstances, ERR_get_error
+// returns 0 when it shouldn't so we provide a message in that case.
 func errorFromErrorQueue() error {
 	var errs []string
 	for {
@@ -107,11 +108,14 @@ func errorFromErrorQueue() error {
 		if err == 0 {
 			break
 		}
-		errs = append(errs, fmt.Sprintf("%lx:%s:%s:%s",
+		errs = append(errs, fmt.Sprintf("%x:%s:%s:%s",
 			err,
 			C.GoString(C.ERR_lib_error_string(err)),
 			C.GoString(C.ERR_func_error_string(err)),
 			C.GoString(C.ERR_reason_error_string(err))))
+	}
+	if len(errs) == 0 {
+		errs = append(errs, "0:Error unavailable")
 	}
 	return fmt.Errorf("SSL errors: %s", strings.Join(errs, "\n"))
 }
