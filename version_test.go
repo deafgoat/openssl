@@ -12,8 +12,13 @@ import (
 
 func TestVersion(t *testing.T) {
 	v := Version
+	b := BuildVersion
 	if len(v) == 0 {
 		t.Fatal("Version string is empty")
 	}
-	t.Logf("Testing with %s", Version)
+	if len(b) == 0 {
+		t.Fatal("BuildVersion string is empty")
+	}
+	t.Logf("Built with headers from: %s", BuildVersion)
+	t.Logf("   Tests linked against: %s", Version)
 }
